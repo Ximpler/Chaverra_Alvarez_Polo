@@ -158,10 +158,10 @@ if verify_path_exists(filename):
             data = comm.scatter(data, root=0)
             # Aquí puedes realizar el procesamiento de los datos en cada proceso
             # ...
+        comm.scatter([None]*size, root=0)
         freq_dict2 = comm.gather(None, root=0)
         print(freq_dict2)
         code_dict = huffman_code(freq_dict2)
-        print(huffman_code)
     else:
         freq_dict2={}
         #primero dividimos y damos a cada quien un pedazo de texto para que vaya sacando el diccionario
