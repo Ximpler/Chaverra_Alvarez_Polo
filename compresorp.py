@@ -84,19 +84,12 @@ def huffman_code(freq_dict):
     return code_dict
 
 
-def compress_file(filename, code_dict):
-    try:
-        with open(filename, "r", encoding="ISO-8859-1") as f:
-            text = f.read()
-        text += " prueba" # <----nota importante
-        compressed_string = ""
-        for char in text:
-            compressed_string += code_dict[char]
-        return compressed_string
-    except FileNotFoundError:
-        print("Archivo no encontrado")
-    except ValueError:
-        print("Error al comprimir el archivo")
+def compress_file(text, code_dict):
+    #text += " prueba" # <----nota importante
+    compressed_string = ""
+    for char in text:
+        compressed_string += code_dict[char]
+    return compressed_string
 
 
 def generate_Compressed_File(compressed_string, code_dict, interlineado):
@@ -133,62 +126,44 @@ if verify_path_exists(filename):
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-
+    lineas_proceso = []
     data = None
     Condicion = True
     if rank == 0:
         with open(filename, "r", encoding="ISO-8859-1", newline="") as r:
             text = r.read()
         interlineado = ver_interlineado(filename)
-        data = list(text.split(interlineado))
-        array_lineas = data
-        while len(array_lineas) > 0:
-            lineas = []
-            for i in range(size):
-                try:
-                    if len(array_lineas) >= 10:
-                        lineas.append(''.join(str(x) for x in array_lineas[:10]))
-                        del array_lineas[:10]
-                    else:
-                        lineas.append(''.join(str(x) for x in array_lineas[:]))
-                        del array_lineas[:]
-                except:
-                    lineas.append(None)
-            data = lineas
-            data = comm.scatter(data, root=0)
+        #texto dividido en lineas
+        text_lineas = list(text.split(interlineado))
+        for i in text_lineas:
+            i = i+interlineado
+        num_lineas = len(text_lineas)
+        # Calcular el número de líneas por proceso
+        lineas_por_proceso = num_lineas // size-1
+        resto = num_lineas % size
+        # Calcular el rango de líneas asignadas a cada proceso
+        for i in range(size-1):
+            inicio = (i+1) * lineas_por_proceso
+            fin = inicio + lineas_por_proceso
+            # Ajustar el rango de líneas para el último proceso si hay un resto
+            if i+1 == size -1:
+                fin += resto
+            # Dividir las líneas asignadas a cada proceso
+            lineas_proceso[i+1] = text_lineas[inicio:fin]
             # Aquí puedes realizar el procesamiento de los datos en cada proceso
             # ...
-        comm.scatter([None]*size, root=0)
-        freq_dict2 = comm.gather(None, root=0)
-        print(freq_dict2)
-        code_dict = huffman_code(freq_dict2)
+        lineas_proceso[0] = None;
+        data = lineas_proceso
+        data = comm.scatter(data, root=0)
+        freq_dict = comm.gather(None, root=0)
+        freq_dict = frequency_dict(freq_dict)
+        print(freq_dict)
     else:
-        freq_dict2={}
-        #primero dividimos y damos a cada quien un pedazo de texto para que vaya sacando el diccionario
-        while Condicion:
-            data = comm.scatter(None, root=0)
-            if data is None:
-                Condicion = False
-            else:
-                freq_dict=frequency_dict(data)
-                #sumamos los dos diccionarios
-                freq_dict2=frequency_dict([freq_dict,freq_dict2])
-        comm.gather(freq_dict2, root=0)
-        code_dict= comm.scatter(None, root=0)
-        
-        #dividimos y damos a cada quien un pedazo de texto, esta vez para que todos vayan sacando el string comprimido
-        """Condicion = True;
-        while Condicion:
-            data = comm.scatter(None, root=0)
-            if data is None:
-                Condicion = False
-            else:
-                compressed_string = compress_file(data, code_dict) 
-        comm.gather(freq_dict2, root=0)
-        
-        #funcion para generar el comprimido .elmejorprofesor
-        generate_Compressed_File(compressed_string, code_dict, interlineado)  
-        print("Se generó su archivo comprimido")"""
+        data = comm.scatter(None, root=0)
+        freq_dict = frequency_dict(data);
+        comm.gather(freq_dict, root=0)
+    
+    MPI.Finalize()
     
     #tiempo
     compressOk = np.datetime64("now")
