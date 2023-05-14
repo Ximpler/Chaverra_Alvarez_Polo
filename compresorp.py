@@ -16,10 +16,18 @@ def verify_path_exists(path_w):
     return os.path.exists(path_w)
 
 def combinate_dict(dato):
-    resultado = {}
+    """resultado = {}
     for diccionario in dato:
         for clave, valor in diccionario.items():
             resultado[clave] = resultado.get(clave, 0) + valor
+    return resultado"""
+    resultado = {}
+    for diccionario in dato:
+        for clave, valor in diccionario.items():
+            if clave in resultado:
+                resultado[clave] += valor
+            else:
+                resultado[clave] = valor
     return resultado
 
 
@@ -109,6 +117,13 @@ def ver_interlineado(filename):
     else:
         return "\n"
 
+def ArrayToString(Array):
+    # Usamos la función map para convertir cada valor del array en un string
+    arr_str = list(map(str, Array))
+    # Concatenamos todos los elementos del array en un solo string usando el método join
+    string = ''.join(arr_str)
+    return string
+
 
 startTime = np.datetime64("now")
 filename = sys.argv[1]
@@ -144,31 +159,25 @@ if verify_path_exists(filename):
             # Aquí puedes realizar el procesamiento de los datos en cada proceso
             # ...
         data = lineas_proceso
-        comm.scatter(data, root=0)
-        freq_dict = comm.gather(None, root=0)
-        #eliminamos el elemento que se supone debe mandar el elemento 0
-        freq_dict.pop(0)
+        #data con la que trabaja el proceso 0
+        data0 = comm.scatter(data, root=0)
+        data0 = ArrayToString(data0)
+        freq_dict0 = frequency_dict(data0)
+        freq_dict = comm.gather(freq_dict0, root=0)
         freq_dict = combinate_dict(freq_dict)
         code_dict = huffman_code(freq_dict)
         comm.scatter([code_dict]*size, root=0)
-        StringComprimido = comm.gather(None, root=0)
-        StringComprimido.pop(0)
-        # Usamos la función map para convertir cada valor del array en un string
-        arr_str = list(map(str, StringComprimido))
-        # Concatenamos todos los elementos del array en un solo string usando el método join
-        StringComprimido = ''.join(arr_str)
+        StringComprimido = compress_file(data0,code_dict)
+        StringComprimido = comm.gather(StringComprimido, root=0)
+        StringComprimido = ArrayToString(StringComprimido)
         generate_Compressed_File(StringComprimido, code_dict, interlineado)
     else:
         data = comm.scatter(None, root=0)
-        # Usamos la función map para convertir cada valor del array en un string
-        arr_str = list(map(str, data))
-        # Concatenamos todos los elementos del array en un solo string usando el método join
-        data = ''.join(arr_str)
+        data = ArrayToString(data)
         freq_dict = frequency_dict(data)
         comm.gather(freq_dict, root=0)
         code_dict = comm.scatter(None, root=0)
         string_comprimido = compress_file(data, code_dict)
-        #string_comprimido = string_comprimido+"    ------       "+rank
         comm.gather(string_comprimido, root=0)
     MPI.Finalize()
     
