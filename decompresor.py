@@ -29,7 +29,9 @@ def open_compressed_file(archivo):
 
 
 def BintoStr(binary_data):
-    bin_str = "".join(format(byte, "08b") for byte in binary_data)
+    #bin_str = "".join(format(byte, "08b") for byte in binary_data)
+    #bin_str = "".join(format(byte) for byte in binary_data)
+    bin_str = "".join(format(byte, "b") for byte in binary_data)
     return bin_str
 
 #notaaaaaaaaaaaaaaaaaa
@@ -62,9 +64,6 @@ if verify_path_exists(filename):
     compressed_string = BintoStr(compressed_string)
     #decodificar el string binario
     decoded_text = decompress_string(compressed_string, code_dict)
-    #muerto en el closet
-    #posicion_ultimo_espacio = decoded_text.rfind(" ")
-    #nueva_cadena = decoded_text[:posicion_ultimo_espacio]
     generate_DesCompressed_File("descomprimido-elmejorprofesor.txt", decoded_text, interlineado)
     print("Se generó su archivo descomprimido")
 else:
