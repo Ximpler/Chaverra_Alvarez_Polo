@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 from mpi4py import MPI
+import re
 
 class HuffmanNode:
     def __init__(self, freq, symbol=None, left=None, right=None):
@@ -107,6 +108,7 @@ def generate_Compressed_File(compressed_string, code_dict, interlineado):
     # binary_data = int(bin_str, 2).to_bytes(len(bin_str) // 8, byteorder='big')
     binary_data = bytes(int(bin_str[i : i + 8], 2) for i in range(0, len(bin_str), 8))
     return binary_data  # ;"""
+
 def StrToBin(bin_str):
     bin_str_filtered = filter(lambda x: x != ' ', bin_str)
     binary_data = bytes(int(ch, 2) for ch in bin_str_filtered)
@@ -118,14 +120,16 @@ def ver_interlineado(filename):
         contenido = f.read()
     if b"\r\n" in contenido:
         return "\r\n"
+        
     else:
         return "\n"
+        
 
 def ArrayToString(Array):
     # Usamos la función map para convertir cada valor del array en un string
     arr_str = list(map(str, Array))
     # Concatenamos todos los elementos del array en un solo string usando el método join
-    string = ' '.join(arr_str)
+    string = ''.join(arr_str)
     return string
 
 
@@ -140,13 +144,16 @@ if verify_path_exists(filename):
     data = None
     Condicion = True
     if rank == 0:
-        with open(filename, "r", encoding="ISO-8859-1") as r:
+        with open(filename, "r", encoding="ISO-8859-1", newline="") as r:
             text = r.read()
         interlineado = ver_interlineado(filename)
+        print(interlineado)
         #texto dividido en lineas
-        text_lineas = list(text.split(interlineado))
+        #text_lineas = list(text.split(' '))
+        text_lineas = re.split(r'(\r\n|\r|\n)', text)
         # Agregar interlineado a cada línea
-        text_lineas = [i + interlineado for i in text_lineas]
+        #text_lineas = [i + interlineado for i in text_lineas]
+        #text_lineas = [i + interlineado if i != text_lineas[-1] else i for i in text_lineas]
         num_lineas = len(text_lineas)
         print(num_lineas)
         # Calcular el número de líneas por proceso
