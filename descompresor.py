@@ -5,13 +5,18 @@ import numpy as np
 def verify_path_exists(path_w):
     return os.path.exists(path_w)
 
+def combine_arrays(array_de_arrays):
+    array_combinado = []
+    for array in array_de_arrays:
+        array_combinado.extend(array)
+    return array_combinado
+
 def open_compressed_file(archivo):
     try:
         with open(archivo, "rb") as f:
-            code_dict = np.load(f, allow_pickle=True)
-            compressed_string = np.load(f, allow_pickle=True)
-            """code_dict = data[0]
-            compressed_string = data[1]"""
+            data = np.load(f, allow_pickle=True)
+            code_dict = data[0]
+            compressed_string = data[1]
             f.close()
         return code_dict, compressed_string
     except FileNotFoundError:
@@ -36,6 +41,7 @@ def generate_DesCompressed_File(file_name, decoded_text):
         f.write(decoded_text)
         f.close()
 
+
 def decompress_string(compressed_string, code_dict):
     # Invertir el diccionario de códigos Huffman para buscar los símbolos por código
     inverse_dict = {code_dict[char]: char for char in code_dict}
@@ -50,16 +56,16 @@ def decompress_string(compressed_string, code_dict):
     return decoded_text
 
 startTime = np.datetime64("now")
-#filename = sys.argv[1]
-filename = "comprimido.elmejorprofesor"
-code_dict, interlineado, compressed_string = open_compressed_file(filename)
+filename = sys.argv[1]
+#filename = "comprimido.elmejorprofesor"
+code_dict, compressed_string = open_compressed_file(filename)
 #pasar de binario a string el comprimido (01010 -> "01010")
+compressed_string = combine_arrays(compressed_string)
 compressed_string = BintoStr(compressed_string)
 tamaño = len(compressed_string)
-data = bits_proceso
 #decodificar el string binario
-data = decompress_string(data, code_dict)
-decoded_text = ArrayToString(decoded_text)
+data = decompress_string(compressed_string, code_dict)
+decoded_text = ArrayToString(data)
 generate_DesCompressed_File("descomprimido-elmejorprofesor.txt", decoded_text)
     
 descompressOk = np.datetime64("now")

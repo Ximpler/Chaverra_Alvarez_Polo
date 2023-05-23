@@ -67,7 +67,6 @@ def huffman_code(freq_dict):
             traverse_tree(node.right, code + "1")
 
     traverse_tree(nodes[0])
-    # print(code_dict)
     return code_dict
 
 
@@ -107,9 +106,7 @@ if verify_path_exists(filename):
         text = f.read()
     text_lineas = re.split(r'(\r\n|\r|\n)', text)
     num_lineas = len(text_lineas)
-    print(frequency_dict(text))
     code_dict = huffman_code(frequency_dict(text))
-    print(code_dict)
     compressed_string = [compress_file(elemento, code_dict) for elemento in text_lineas]
     compressed_string = [StrToBin(elemento) for elemento in compressed_string]
     #funcion para generar el comprimido .elmejorprofesor

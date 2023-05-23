@@ -59,8 +59,8 @@ def decompress_string(compressed_string, code_dict):
 
 
 startTime = np.datetime64("now")
-#filename = sys.argv[1]
-filename = "comprimido.elmejorprofesor"
+#filename = "comprimido.elmejorprofesor"
+filename = sys.argv[1]
 code_dict, compressed_string = open_compressed_file(filename)
 #pasar de binario a string el comprimido (01010 -> "01010")
 compressed_string = [BintoStr(elemento) for elemento in compressed_string]
@@ -104,7 +104,7 @@ else:
 MPI.Finalize()
 descompressOk = np.datetime64("now")
 time = descompressOk - startTime
-
-print(
-    time / np.timedelta64(1, "s")
-)
+if rank==0:
+    print(
+        time / np.timedelta64(1, "s")
+    )
