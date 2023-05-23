@@ -16,11 +16,6 @@ def verify_path_exists(path_w):
     return os.path.exists(path_w)
 
 def combinate_dict(dato):
-    """resultado = {}
-    for diccionario in dato:
-        for clave, valor in diccionario.items():
-            resultado[clave] = resultado.get(clave, 0) + valor
-    return resultado"""
     resultado = {}
     for diccionario in dato:
         for clave, valor in diccionario.items():
@@ -30,6 +25,12 @@ def combinate_dict(dato):
                 resultado[clave] = valor
     return resultado
 
+def combine_arrays(array_de_arrays):
+    array_combinado = []
+    for array in array_de_arrays:
+        array_combinado.extend(array)
+
+    return array_combinado
 
 def frequency_dict(dato):
     freq_dict = {}
@@ -40,11 +41,6 @@ def frequency_dict(dato):
             freq_dict[i] = 1
     return freq_dict
        
-
-
-
-
-
 def huffman_code(freq_dict):
     # Convertir el diccionario de frecuencias en una lista de tuplas
     freq_list = [(freq_dict[symbol], symbol) for symbol in freq_dict]
@@ -90,24 +86,19 @@ def huffman_code(freq_dict):
 
 
 def compress_file(text, code_dict):
-    #text += " prueba" # <----nota importante
+
     compressed_string = ""
     for char in text:
         compressed_string += code_dict[char]
     return compressed_string
 
 
-def generate_Compressed_File(compressed_string, code_dict, interlineado):
+def generate_Compressed_File(compressed_string, code_dict):
     with open("comprimido.elmejorprofesor", "wb") as f:
-        np.save(f, (code_dict, interlineado))
-        f.write(StrToBin(compressed_string))
+        np.save(f, (code_dict))
+        for e in compressed_string:
+            f.write(e)
         f.close()
-
-
-"""def StrToBin(bin_str):
-    # binary_data = int(bin_str, 2).to_bytes(len(bin_str) // 8, byteorder='big')
-    binary_data = bytes(int(bin_str[i : i + 8], 2) for i in range(0, len(bin_str), 8))
-    return binary_data  # ;"""
 
 def StrToBin(bin_str):
     bin_str_filtered = filter(lambda x: x != ' ', bin_str)
@@ -130,6 +121,7 @@ def ArrayToString(Array):
     arr_str = list(map(str, Array))
     # Concatenamos todos los elementos del array en un solo string usando el método join
     string = ''.join(arr_str)
+    
     return string
 
 
@@ -142,20 +134,13 @@ if verify_path_exists(filename):
     size = comm.Get_size()
     lineas_proceso = [None]*size
     data = None
-    Condicion = True
     if rank == 0:
         with open(filename, "r", encoding="ISO-8859-1", newline="") as r:
             text = r.read()
         interlineado = ver_interlineado(filename)
-        print(interlineado)
         #texto dividido en lineas
-        #text_lineas = list(text.split(' '))
         text_lineas = re.split(r'(\r\n|\r|\n)', text)
-        # Agregar interlineado a cada línea
-        #text_lineas = [i + interlineado for i in text_lineas]
-        #text_lineas = [i + interlineado if i != text_lineas[-1] else i for i in text_lineas]
         num_lineas = len(text_lineas)
-        print(num_lineas)
         # Calcular el número de líneas por proceso
         lineas_por_proceso = num_lineas // size
         resto = num_lineas % size
@@ -173,31 +158,36 @@ if verify_path_exists(filename):
         data = lineas_proceso
         #data con la que trabaja el proceso 0
         data0 = comm.scatter(data, root=0)
+        data_array = data0
         data0 = ArrayToString(data0)
         freq_dict0 = frequency_dict(data0)
         freq_dict = comm.gather(freq_dict0, root=0)
         freq_dict = combinate_dict(freq_dict)
         code_dict = huffman_code(freq_dict)
-        comm.scatter([code_dict]*size, root=0)
-        StringComprimido = compress_file(data0,code_dict)
+        comm.scatter([code_dict]*size, root=0) #broadcast
+        StringComprimido = [compress_file(elemento, code_dict) for elemento in data_array]
         StringComprimido = comm.gather(StringComprimido, root=0)
+        StringComprimido = combine_arrays(StringComprimido)
         StringComprimido = ArrayToString(StringComprimido)
-        generate_Compressed_File(StringComprimido, code_dict, interlineado)
+        StringComprimido = [StrToBin(elemento) for elemento in StringComprimido]
+        generate_Compressed_File(StringComprimido, code_dict)
     else:
         data = comm.scatter(None, root=0)
+        data_array=data
         data = ArrayToString(data)
         freq_dict = frequency_dict(data)
         comm.gather(freq_dict, root=0)
         code_dict = comm.scatter(None, root=0)
-        string_comprimido = compress_file(data, code_dict)
+        string_comprimido = [compress_file(elemento, code_dict) for elemento in data_array]
         comm.gather(string_comprimido, root=0)
     MPI.Finalize()
     
     #tiempo
     compressOk = np.datetime64("now")
     time = compressOk - startTime
-    print(
-        time / np.timedelta64(1, "s"),
-    )
+    if rank == 0:
+        print(
+            time / np.timedelta64(1, "s"),
+        )
 
     
