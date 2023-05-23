@@ -79,9 +79,8 @@ def compress_file(text, code_dict):
 
 def generate_Compressed_File(compressed_string, code_dict):
     with open("comprimido.elmejorprofesor", "wb") as f:
-        np.save(f, (code_dict))
-        for e in compressed_string:
-            f.write(e)
+        np.save(f, (code_dict, compressed_string))
+        #f.write(StrToBin(compressed_string))
         f.close()
 
 
