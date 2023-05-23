@@ -95,9 +95,8 @@ def compress_file(text, code_dict):
 
 def generate_Compressed_File(compressed_string, code_dict):
     with open("comprimido.elmejorprofesor", "wb") as f:
-        np.save(f, (code_dict))
-        for e in compressed_string:
-            f.write(e)
+        np.save(f, (code_dict, compressed_string))
+        #f.write(StrToBin(compressed_string))
         f.close()
 
 def StrToBin(bin_str):
@@ -121,7 +120,6 @@ def ArrayToString(Array):
     arr_str = list(map(str, Array))
     # Concatenamos todos los elementos del array en un solo string usando el método join
     string = ''.join(arr_str)
-    
     return string
 
 
@@ -167,8 +165,9 @@ if verify_path_exists(filename):
         comm.scatter([code_dict]*size, root=0) #broadcast
         StringComprimido = [compress_file(elemento, code_dict) for elemento in data_array]
         StringComprimido = comm.gather(StringComprimido, root=0)
+        
+        #StringComprimido = ArrayToString(StringComprimido)
         StringComprimido = combine_arrays(StringComprimido)
-        StringComprimido = ArrayToString(StringComprimido)
         StringComprimido = [StrToBin(elemento) for elemento in StringComprimido]
         generate_Compressed_File(StringComprimido, code_dict)
     else:

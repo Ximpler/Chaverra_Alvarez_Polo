@@ -3,6 +3,8 @@ import sys
 import numpy as np
 from mpi4py import MPI
 
+def verify_path_exists(path_w):
+    return os.path.exists(path_w)
 
 def combine_arrays(array_de_arrays):
     array_combinado = []
@@ -61,10 +63,7 @@ startTime = np.datetime64("now")
 filename = "comprimido.elmejorprofesor"
 code_dict, compressed_string = open_compressed_file(filename)
 #pasar de binario a string el comprimido (01010 -> "01010")
-
-#compressed_string = [BintoStr(elemento) for elemento in compressed_string]
-compressed_string = BintoStr(compressed_string)
-compressed_string = remove_padding(compressed_string)
+compressed_string = [BintoStr(elemento) for elemento in compressed_string]
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()

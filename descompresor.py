@@ -1,21 +1,19 @@
 import os
 import sys
 import numpy as np
-from mpi4py import MPI
 
 def verify_path_exists(path_w):
     return os.path.exists(path_w)
 
-
 def open_compressed_file(archivo):
     try:
         with open(archivo, "rb") as f:
-            data = np.load(f, allow_pickle=True)
-            code_dict = data[0]
-            interlineado = data[1]
-            compressed_string = f.read()
+            code_dict = np.load(f, allow_pickle=True)
+            compressed_string = np.load(f, allow_pickle=True)
+            """code_dict = data[0]
+            compressed_string = data[1]"""
             f.close()
-        return code_dict, interlineado, compressed_string
+        return code_dict, compressed_string
     except FileNotFoundError:
         print("Archivo no encontrado")
     except ValueError:
@@ -33,11 +31,10 @@ def ArrayToString(Array):
     string = ''.join(arr_str)
     return string
 
-def generate_DesCompressed_File(file_name, decoded_text, interlineado):
+def generate_DesCompressed_File(file_name, decoded_text):
     with open(file_name, "w", encoding="ISO-8859-1") as f:
         f.write(decoded_text)
         f.close()
-
 
 def decompress_string(compressed_string, code_dict):
     # Invertir el diccionario de códigos Huffman para buscar los símbolos por código
@@ -52,46 +49,19 @@ def decompress_string(compressed_string, code_dict):
             code = ""
     return decoded_text
 
-
 startTime = np.datetime64("now")
 #filename = sys.argv[1]
 filename = "comprimido.elmejorprofesor"
 code_dict, interlineado, compressed_string = open_compressed_file(filename)
 #pasar de binario a string el comprimido (01010 -> "01010")
 compressed_string = BintoStr(compressed_string)
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-bits_proceso = [None]*size
-data = None
-if(rank==0):
-    tamaño = len(compressed_string)
-    bits_por_proceso = tamaño // size
-    resto = tamaño % size
-    # Calcular el rango de líneas asignadas a cada proceso
-    for i in range(size):
-        inicio = i * bits_por_proceso
-        fin = inicio + bits_por_proceso
-        # Ajustar el rango de líneas para el último proceso si hay un resto
-        if i == size - 1:
-            fin += resto
-        # Dividir las líneas asignadas a cada proceso
-        bits_proceso[i] = compressed_string[inicio:fin]
-        # Aquí puedes realizar el procesamiento de los datos en cada proceso
-        # ...
-    data = bits_proceso
-    #decodificar el string binario
-    data0 = comm.scatter(data, root=0)
-    data0 = decompress_string(data0, code_dict)
-    decoded_text = comm.gather(data0,root=0)
-    decoded_text = ArrayToString(decoded_text)
-    generate_DesCompressed_File("descomprimido-elmejorprofesor.txt", decoded_text, interlineado)
-else:
-    data = comm.scatter(data, root=0)
-    data = decompress_string(data, code_dict)
-    comm.gather(data,root=0)
+tamaño = len(compressed_string)
+data = bits_proceso
+#decodificar el string binario
+data = decompress_string(data, code_dict)
+decoded_text = ArrayToString(decoded_text)
+generate_DesCompressed_File("descomprimido-elmejorprofesor.txt", decoded_text)
     
-MPI.Finalize()
 descompressOk = np.datetime64("now")
 time = descompressOk - startTime
 

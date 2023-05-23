@@ -1,7 +1,7 @@
 import os
 import sys
 import numpy as np
-
+import re
 
 
 class HuffmanNode:
@@ -71,31 +71,19 @@ def huffman_code(freq_dict):
     return code_dict
 
 
-def compress_file(filename, code_dict):
-    try:
-        with open(filename, "r", encoding="ISO-8859-1") as f:
-            text = f.read()
-        compressed_string = ""
-        for char in text:
-            compressed_string += code_dict[char]
-        return compressed_string
-    except FileNotFoundError:
-        print("Archivo no encontrado")
-    except ValueError:
-        print("Error al comprimir el archivo")
+def compress_file(text, code_dict):
+    compressed_string = ""
+    for char in text:
+        compressed_string += code_dict[char]
+    return compressed_string
 
-
-def generate_Compressed_File(compressed_string, code_dict, interlineado):
+def generate_Compressed_File(compressed_string, code_dict):
     with open("comprimido.elmejorprofesor", "wb") as f:
-        np.save(f, (code_dict, interlineado))
-        f.write(StrToBin(compressed_string))
+        np.save(f, (code_dict))
+        for e in compressed_string:
+            f.write(e)
         f.close()
 
-
-"""def StrToBin(bin_str):
-    # binary_data = int(bin_str, 2).to_bytes(len(bin_str) // 8, byteorder='big')
-    binary_data = bytes(int(bin_str[i : i + 8], 2) for i in range(0, len(bin_str), 8))
-    return binary_data  # ;"""
 
 def StrToBin(bin_str):
     bin_str_filtered = filter(lambda x: x != ' ', bin_str)
@@ -113,29 +101,23 @@ def ver_interlineado(filename):
     else:
         return "\n"
 
-
-#print("<------ Bienvenidos al sistema de compresión PYTHON ------>")
-
 startTime = np.datetime64("now")
 filename = sys.argv[1]
 if verify_path_exists(filename):
     with open(filename, "r", encoding="ISO-8859-1", newline="") as f:
         text = f.read()
-    interlineado = ver_interlineado(filename)
-    # Función para comprimir el archivo
+    text_lineas = re.split(r'(\r\n|\r|\n)', text)
+    num_lineas = len(text_lineas)
     print(frequency_dict(text))
     code_dict = huffman_code(frequency_dict(text))
     print(code_dict)
-    compressed_string = compress_file(filename, code_dict) 
+    compressed_string = [compress_file(elemento, code_dict) for elemento in text_lineas]
+    compressed_string = [StrToBin(elemento) for elemento in compressed_string]
     #funcion para generar el comprimido .elmejorprofesor
-    generate_Compressed_File(compressed_string, code_dict, interlineado)  
-    print("Se generó su archivo comprimido")
+    generate_Compressed_File(compressed_string, code_dict)  
     #tiempo
     compressOk = np.datetime64("now")
     time = compressOk - startTime
     print(
-        "Se demoró ",
         time / np.timedelta64(1, "s"),
-        " segundos en comprimir el archivo: ",
-        filename,
     )
